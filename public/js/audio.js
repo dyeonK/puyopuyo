@@ -9,6 +9,16 @@ class AudioManager {
     this.bgmEnabled = true;
     this.bgmTimer = null;
     this.bgmStep = 0;
+    this.hasCustomBgm = true;
+
+    // Load custom MP3 BGM
+    this.bgmAudio = new Audio('audio/bgm.mp3');
+    this.bgmAudio.loop = true;
+    this.bgmAudio.volume = 0.45;
+    this.bgmAudio.addEventListener('error', () => {
+      this.hasCustomBgm = false;
+    });
+
     this.initAudioContext();
   }
 
@@ -30,9 +40,12 @@ class AudioManager {
 
   toggleMute() {
     this.muted = !this.muted;
-    if (this.muted && this.bgmTimer) {
+    if (this.bgmAudio) {
+      this.bgmAudio.muted = this.muted;
+    }
+    if (this.muted) {
       this.stopBGM();
-    } else if (!this.muted && this.bgmEnabled) {
+    } else if (this.bgmEnabled) {
       this.startBGM();
     }
     return this.muted;
@@ -304,8 +317,38 @@ class AudioManager {
     });
   }
 
-  // --- Cute Procedural 8-Bit / Arcade BGM ---
+  // --- BGM Controller ---
   startBGM() {
+    if (this.muted || !this.bgmEnabled) return;
+    this.ensureContext();
+
+    if (this.hasCustomBgm && this.bgmAudio) {
+      this.bgmAudio.currentTime = 0;
+      const playPromise = this.bgmAudio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          console.warn('[Audio] Custom MP3 autoplay prevented or not found, falling back to synth.');
+          this.startSynthBGM();
+        });
+      }
+      return;
+    }
+
+    this.startSynthBGM();
+  }
+
+  stopBGM() {
+    if (this.bgmAudio) {
+      this.bgmAudio.pause();
+    }
+    if (this.bgmTimer) {
+      clearInterval(this.bgmTimer);
+      this.bgmTimer = null;
+    }
+  }
+
+  // --- Cute Procedural 8-Bit / Arcade BGM Fallback ---
+  startSynthBGM() {
     if (this.muted || !this.bgmEnabled || this.bgmTimer) return;
     this.ensureContext();
 
@@ -360,12 +403,6 @@ class AudioManager {
     }, stepDuration * 1000);
   }
 
-  stopBGM() {
-    if (this.bgmTimer) {
-      clearInterval(this.bgmTimer);
-      this.bgmTimer = null;
-    }
-  }
 }
 
 window.audioManager = new AudioManager();
