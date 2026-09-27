@@ -567,6 +567,14 @@ canvas.board-canvas {
   display: block;
 }
 
+canvas.board-canvas {
+  display: block;
+  width: 100%;
+  max-width: 216px;
+  height: auto;
+  aspect-ratio: 1 / 2;
+}
+
 /* Next Puyo Preview Panel */
 .next-preview-box {
   position: absolute;
@@ -580,6 +588,7 @@ canvas.board-canvas {
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  z-index: 2;
 }
 
 .player-pod .next-preview-box {
@@ -639,15 +648,21 @@ canvas.next-canvas {
   display: none;
   width: 100%;
   max-width: 500px;
-  margin-top: 16px;
-  gap: 16px;
+  margin-top: 14px;
+  padding: 12px 18px;
+  background: rgba(18, 22, 44, 0.85);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   justify-content: space-between;
+  align-items: center;
 }
 
 .touch-cluster {
   display: grid;
-  grid-template-columns: repeat(3, 56px);
-  grid-template-rows: repeat(2, 56px);
+  grid-template-columns: repeat(3, 52px);
+  grid-template-rows: repeat(2, 52px);
   gap: 8px;
 }
 
@@ -661,11 +676,26 @@ canvas.next-canvas {
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  touch-action: manipulation;
 }
 
 .touch-btn:active {
   background: rgba(0, 240, 255, 0.3);
   transform: scale(0.92);
+}
+
+.touch-action-cluster {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.touch-action-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  font-size: 24px;
+  font-weight: bold;
 }
 
 /* Keybindings Guide Footer */
@@ -707,9 +737,6 @@ canvas.next-canvas {
 
 /* Responsive adjustments */
 @media (max-width: 950px) {
-  .game-container {
-    gap: 16px;
-  }
   .next-preview-box {
     position: static;
     margin-bottom: 8px;
@@ -722,18 +749,133 @@ canvas.next-canvas {
 }
 
 @media (max-width: 768px) {
-  .title-title {
-    font-size: 42px;
+  #app {
+    padding: 8px 6px;
   }
+
+  header {
+    padding: 8px 14px;
+    margin-bottom: 8px;
+    border-radius: 16px;
+  }
+
+  .logo-text {
+    font-size: 18px;
+  }
+
+  .logo-icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .top-controls {
+    gap: 6px;
+  }
+
+  .btn-icon {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .title-title {
+    font-size: 40px;
+  }
+
+  .title-sub {
+    font-size: 14px;
+  }
+
   .menu-cards-container {
     flex-direction: column;
     align-items: center;
+    gap: 16px;
   }
+
   .menu-card {
     width: 100%;
-    max-width: 320px;
+    max-width: 340px;
+    padding: 24px 20px;
   }
+
+  /* Two boards side-by-side fit nicely on mobile screens */
+  .game-container {
+    gap: 6px;
+    width: 100%;
+    max-width: 440px;
+    align-items: flex-start;
+  }
+
+  .board-pod {
+    padding: 8px 6px 12px 6px;
+    border-radius: 18px;
+  }
+
+  .player-info-bar {
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+  }
+
+  .player-label {
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .badge-tag {
+    font-size: 9px;
+    padding: 2px 5px;
+  }
+
+  .score-display {
+    font-size: 14px;
+  }
+
+  .garbage-tray {
+    height: 22px;
+    margin-bottom: 6px;
+    padding: 0 4px;
+    gap: 2px;
+  }
+
+  .garbage-unit {
+    font-size: 12px;
+  }
+
+  .next-preview-box {
+    padding: 4px 6px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+    gap: 2px;
+  }
+
+  .next-title {
+    font-size: 8px;
+  }
+
+  canvas.next-canvas {
+    width: 30px;
+    height: 60px;
+  }
+
+  .vs-center-col {
+    min-width: 32px;
+    padding-top: 36px;
+  }
+
+  .vs-emblem {
+    font-size: 20px;
+    margin-bottom: 6px;
+  }
+
+  .match-status-pill {
+    font-size: 9px;
+    padding: 3px 6px;
+  }
+
   .mobile-controls {
     display: flex;
+  }
+
+  .controls-guide-bar {
+    display: none;
   }
 }
