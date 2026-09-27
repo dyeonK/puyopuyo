@@ -1,0 +1,50 @@
+[
+  {
+    "name": "아르르",
+    "wins": 42,
+    "losses": 5,
+    "maxChain": 11,
+    "highScore": 184500,
+    "date": "2026-09-27"
+  },
+  {
+    "name": "사탄(마왕)",
+    "wins": 38,
+    "losses": 8,
+    "maxChain": 9,
+    "highScore": 142000,
+    "date": "2026-09-27"
+  },
+  {
+    "name": "카방클",
+    "wins": 29,
+    "losses": 12,
+    "maxChain": 8,
+    "highScore": 98600,
+    "date": "2026-09-27"
+  },
+  {
+    "name": "뿌요장인",
+    "wins": 21,
+    "losses": 9,
+    "maxChain": 7,
+    "highScore": 74200,
+    "date": "2026-09-27"
+  },
+  {
+    "name": "네온팝",
+    "wins": 15,
+    "losses": 6,
+    "maxChain": 6,
+    "highScore": 56300,
+    "date": "2026-09-27"
+  },
+  {
+    "name": "???",
+    "wins": 1,
+    "losses": 0,
+    "maxChain": 5,
+    "highScore": 25000,
+    "date": "2026-09-27"
+  }
+]

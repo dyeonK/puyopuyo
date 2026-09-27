@@ -35,6 +35,29 @@
       </div>
 
       <div class="top-controls">
+        <!-- Volume Control Dropdown -->
+        <div style="position: relative;">
+          <button id="btnVolumeSettings" class="btn-icon" title="사운드 볼륨 조절">
+            <span>🎚️</span> 볼륨
+          </button>
+          <div id="volumePopup" class="volume-popup">
+            <div class="vol-slider-row">
+              <span class="vol-label">🔊 효과음</span>
+              <input type="range" id="sliderSfx" min="0" max="1" step="0.05" value="0.8">
+              <span id="valSfx" class="vol-val">80%</span>
+            </div>
+            <div class="vol-slider-row">
+              <span class="vol-label">🎵 BGM</span>
+              <input type="range" id="sliderBgm" min="0" max="1" step="0.05" value="0.5">
+              <span id="valBgm" class="vol-val">50%</span>
+            </div>
+          </div>
+        </div>
+
+        <button id="btnOpenLeaderboard" class="btn-icon" title="글로벌 랭킹 & 전적">
+          <span>🏆</span> 랭킹
+        </button>
+
         <button id="btnSoundToggle" class="btn-icon" title="효과음 켜기/끄기">
           <span id="soundIcon">🔊</span> 효과음
         </button>
@@ -105,6 +128,18 @@
               <!-- Dynamically populated garbage icons -->
             </div>
 
+            <!-- Fever Gauge Indicator -->
+            <div class="fever-gauge-bar" id="p1FeverBar" title="피버 게이지 (상쇄 시 충전)">
+              <div class="fever-orb" data-index="0"></div>
+              <div class="fever-orb" data-index="1"></div>
+              <div class="fever-orb" data-index="2"></div>
+              <div class="fever-orb" data-index="3"></div>
+              <div class="fever-orb" data-index="4"></div>
+              <div class="fever-orb" data-index="5"></div>
+              <div class="fever-orb" data-index="6"></div>
+              <span class="fever-status-text" id="p1FeverStatus">FEVER 0/7</span>
+            </div>
+
             <!-- Game Canvas -->
             <div class="board-arena">
               <canvas id="p1Canvas" class="board-canvas" width="216" height="432"></canvas>
@@ -140,6 +175,18 @@
             <!-- Garbage Tray Bar -->
             <div class="garbage-tray" id="p2GarbageTray" title="상대방 방해뿌요 대기열">
               <!-- Dynamically populated garbage icons -->
+            </div>
+
+            <!-- Fever Gauge Indicator -->
+            <div class="fever-gauge-bar" id="p2FeverBar" title="상대방 피버 게이지">
+              <div class="fever-orb" data-index="0"></div>
+              <div class="fever-orb" data-index="1"></div>
+              <div class="fever-orb" data-index="2"></div>
+              <div class="fever-orb" data-index="3"></div>
+              <div class="fever-orb" data-index="4"></div>
+              <div class="fever-orb" data-index="5"></div>
+              <div class="fever-orb" data-index="6"></div>
+              <span class="fever-status-text" id="p2FeverStatus">FEVER 0/7</span>
             </div>
 
             <!-- Game Canvas -->
@@ -304,8 +351,8 @@
             뿌요가 터진 후 위에 있던 뿌요들이 중력으로 떨어지며 연속으로 터지면 <b>연쇄</b>가 발생합니다! 2연쇄 이상부터 상대에게 무시무시한 <b>방해뿌요</b>를 보냅니다.
           </div>
           <div>
-            <b style="color: var(--neon-green);">3. 방해뿌요 상쇄 시스템</b><br>
-            상대방에게 공격을 받았을 때 바로 연쇄를 일으키면 날아오는 방해뿌요를 <b>상쇄(OFFSET)</b>시켜 막아내거나 역공할 수 있습니다!
+            <b style="color: var(--neon-green);">3. 방해뿌요 상쇄 & 피버(Fever) 모드</b><br>
+            상대방에게 공격을 받았을 때 연쇄를 일으키면 <b>상쇄(OFFSET)</b>되며, 상쇄가 7번 누적되면 <b>피버 타임(Fever Time)</b>에 돌입하여 강력한 콤보 퍼즐로 대량의 공격을 쏟아붓습니다!
           </div>
           <div>
             <b style="color: #ff0055);">4. 패배 조건 (X 표시)</b><br>
@@ -313,6 +360,41 @@
           </div>
         </div>
         <button class="btn-secondary" id="btnCloseHelpBtn" style="margin-top: 24px;">확인 완료</button>
+      </div>
+    </div>
+
+    <!-- MODAL 5: Global Leaderboard & Records -->
+    <div class="modal-overlay" id="modalLeaderboard">
+      <div class="modal-card" style="max-width: 620px;">
+        <div class="modal-header">
+          <h3 class="modal-title">🏆 글로벌 명예의 전당 (Leaderboard)</h3>
+          <button class="btn-close" id="btnCloseLeaderboard">✕</button>
+        </div>
+        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">실시간 승리 수 및 최고 연쇄, 점수 랭킹입니다.</p>
+
+        <div class="leaderboard-table-wrapper">
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">순위</th>
+                <th>플레이어</th>
+                <th>전적</th>
+                <th>최대 연쇄</th>
+                <th>최고 점수</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardListBody">
+              <tr>
+                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">랭킹 데이터를 불러오는 중...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+          <button class="btn-secondary" id="btnRefreshLeaderboard" style="flex: 1; margin-top: 0;">🔄 새로고침</button>
+          <button class="btn-primary" id="btnCloseLeaderboardBtn" style="flex: 1; padding: 12px;">확인</button>
+        </div>
       </div>
     </div>
   </div>

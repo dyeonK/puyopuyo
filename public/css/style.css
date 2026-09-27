@@ -879,3 +879,156 @@ canvas.next-canvas {
     display: none;
   }
 }
+
+/* =========================================
+   VOLUME POPUP SLIDERS
+   ========================================= */
+.volume-popup {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 10px;
+  background: rgba(14, 18, 38, 0.95);
+  border: 1px solid var(--neon-cyan);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 15px rgba(0, 240, 255, 0.25);
+  backdrop-filter: blur(16px);
+  border-radius: 18px;
+  padding: 16px 20px;
+  width: 260px;
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+  z-index: 100;
+  animation: modalPop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.volume-popup.active {
+  display: flex;
+}
+
+.vol-slider-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.vol-label {
+  font-size: 13px;
+  color: var(--text-main);
+  min-width: 68px;
+}
+
+.vol-slider-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--neon-cyan);
+  cursor: pointer;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.vol-val {
+  font-size: 12px;
+  color: var(--neon-cyan);
+  min-width: 32px;
+  text-align: right;
+  font-family: monospace;
+}
+
+/* =========================================
+   FEVER GAUGE BAR & ORBS
+   ========================================= */
+.fever-gauge-bar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 4px 8px;
+  margin-bottom: 8px;
+}
+
+.fever-orb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.fever-orb.active {
+  background: linear-gradient(135deg, #ff007f, #ffd700);
+  border-color: #ff007f;
+  box-shadow: 0 0 10px #ff007f;
+  transform: scale(1.18);
+}
+
+.fever-status-text {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  font-family: 'Outfit', sans-serif;
+  margin-left: 6px;
+}
+
+.fever-status-text.ready {
+  color: var(--neon-pink);
+  animation: pulseScale 1s infinite alternate;
+}
+
+/* =========================================
+   LEADERBOARD MODAL & TABLE
+   ========================================= */
+.leaderboard-table-wrapper {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  overflow: hidden;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.leaderboard-table th {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 12px 14px;
+  color: var(--neon-cyan);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  backdrop-filter: blur(8px);
+}
+
+.leaderboard-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.leaderboard-table tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.rank-medal {
+  font-size: 18px;
+  display: inline-block;
+  line-height: 1;
+}
+
+.rank-num {
+  font-weight: 700;
+  color: var(--text-muted);
+  font-size: 14px;
+}

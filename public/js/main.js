@@ -79,6 +79,28 @@ document.addEventListener('DOMContentLoaded', () => {
   const p1GarbageTray = document.getElementById('p1GarbageTray');
   const p2GarbageTray = document.getElementById('p2GarbageTray');
 
+  // Volume & Audio Controls
+  const btnVolumeSettings = document.getElementById('btnVolumeSettings');
+  const volumePopup = document.getElementById('volumePopup');
+  const sliderSfx = document.getElementById('sliderSfx');
+  const valSfx = document.getElementById('valSfx');
+  const sliderBgm = document.getElementById('sliderBgm');
+  const valBgm = document.getElementById('valBgm');
+
+  // Leaderboard Elements
+  const btnOpenLeaderboard = document.getElementById('btnOpenLeaderboard');
+  const modalLeaderboard = document.getElementById('modalLeaderboard');
+  const btnCloseLeaderboard = document.getElementById('btnCloseLeaderboard');
+  const btnCloseLeaderboardBtn = document.getElementById('btnCloseLeaderboardBtn');
+  const btnRefreshLeaderboard = document.getElementById('btnRefreshLeaderboard');
+  const leaderboardListBody = document.getElementById('leaderboardListBody');
+
+  // Fever Gauge Elements
+  const p1FeverBar = document.getElementById('p1FeverBar');
+  const p1FeverStatus = document.getElementById('p1FeverStatus');
+  const p2FeverBar = document.getElementById('p2FeverBar');
+  const p2FeverStatus = document.getElementById('p2FeverStatus');
+
   // Mobile Buttons
   const btnTouchLeft = document.getElementById('btnTouchLeft');
   const btnTouchRight = document.getElementById('btnTouchRight');
@@ -96,6 +118,84 @@ document.addEventListener('DOMContentLoaded', () => {
   let aiController = null;
   let countdownTimer = null;
   let lastFrameTime = performance.now();
+
+  // --- Volume Sliders & Controls ---
+  btnVolumeSettings.addEventListener('click', (e) => {
+    e.stopPropagation();
+    volumePopup.classList.toggle('active');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!volumePopup.contains(e.target) && e.target !== btnVolumeSettings) {
+      volumePopup.classList.remove('active');
+    }
+  });
+
+  if (sliderSfx) {
+    sliderSfx.value = window.audioManager.sfxVolume;
+    valSfx.textContent = Math.round(window.audioManager.sfxVolume * 100) + '%';
+    sliderSfx.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      window.audioManager.setSfxVolume(val);
+      valSfx.textContent = Math.round(val * 100) + '%';
+    });
+  }
+
+  if (sliderBgm) {
+    sliderBgm.value = window.audioManager.bgmVolume;
+    valBgm.textContent = Math.round(window.audioManager.bgmVolume * 100) + '%';
+    sliderBgm.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      window.audioManager.setBgmVolume(val);
+      valBgm.textContent = Math.round(val * 100) + '%';
+    });
+  }
+
+  // --- Leaderboard Integration ---
+  async function fetchLeaderboard() {
+    leaderboardListBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">랭킹 데이터를 불러오는 중...</td></tr>';
+    try {
+      const res = await fetch('/api/leaderboard');
+      const data = await res.json();
+      if (data && data.success && data.leaderboard) {
+        renderLeaderboard(data.leaderboard);
+      }
+    } catch (err) {
+      leaderboardListBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #ff0055; padding: 24px;">데이터를 불러오지 못했습니다.</td></tr>';
+    }
+  }
+
+  function renderLeaderboard(list) {
+    if (!list || list.length === 0) {
+      leaderboardListBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">아직 기록된 전적이 없습니다. 첫 번째 챔피언이 되어보세요!</td></tr>';
+      return;
+    }
+    leaderboardListBody.innerHTML = '';
+    list.forEach((item, idx) => {
+      const tr = document.createElement('tr');
+      let medal = `<span class="rank-num">${idx + 1}</span>`;
+      if (idx === 0) medal = '<span class="rank-medal">🥇</span>';
+      else if (idx === 1) medal = '<span class="rank-medal">🥈</span>';
+      else if (idx === 2) medal = '<span class="rank-medal">🥉</span>';
+
+      tr.innerHTML = `
+        <td style="text-align: center;">${medal}</td>
+        <td><b style="color: #fff;">${item.name}</b></td>
+        <td><span style="color: var(--neon-green); font-weight: bold;">${item.wins}승</span> <span style="color: var(--text-muted); font-size: 11px;">(${item.losses}패)</span></td>
+        <td><span style="color: var(--neon-cyan); font-weight: bold;">${item.maxChain} Chain</span></td>
+        <td><span style="color: var(--neon-yellow); font-weight: bold;">${item.highScore.toLocaleString()}</span></td>
+      `;
+      leaderboardListBody.appendChild(tr);
+    });
+  }
+
+  btnOpenLeaderboard.addEventListener('click', () => {
+    modalLeaderboard.classList.add('active');
+    fetchLeaderboard();
+  });
+  btnCloseLeaderboard.addEventListener('click', () => modalLeaderboard.classList.remove('active'));
+  btnCloseLeaderboardBtn.addEventListener('click', () => modalLeaderboard.classList.remove('active'));
+  btnRefreshLeaderboard.addEventListener('click', fetchLeaderboard);
 
   // --- Audio Event Listeners ---
   btnSoundToggle.addEventListener('click', () => {
@@ -453,6 +553,19 @@ document.addEventListener('DOMContentLoaded', () => {
     resultScore.textContent = score.toLocaleString();
     resultMaxChain.textContent = `${maxChain} Chain`;
     modalGameOver.classList.add('active');
+
+    // Auto submit to Global Leaderboard
+    const playerName = (p1NameEl.textContent || '플레이어 1').trim();
+    fetch('/api/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: playerName,
+        isWin,
+        score,
+        maxChain
+      })
+    }).catch(err => console.error('[Leaderboard] Submit error:', err));
   }
 
   btnRematch.addEventListener('click', () => {
@@ -603,6 +716,30 @@ document.addEventListener('DOMContentLoaded', () => {
   bindTouch(btnTouchRotCW, () => p1Board.rotateClockwise());
   bindTouch(btnTouchRotCCW, () => p1Board.rotateCounterClockwise());
 
+  // --- Fever Gauge UI Renderer ---
+  function updateFeverUI(container, statusEl, board) {
+    if (!container || !board) return;
+    const orbs = container.querySelectorAll('.fever-orb');
+    orbs.forEach((orb, idx) => {
+      if (board.isFeverMode) {
+        orb.className = 'fever-orb active';
+      } else {
+        orb.className = `fever-orb ${idx < board.feverGauge ? 'active' : ''}`;
+      }
+    });
+
+    if (board.isFeverMode) {
+      statusEl.className = 'fever-status-text ready';
+      statusEl.textContent = `⚡ FEVER ${(board.feverTimeLeft / 1000).toFixed(1)}s`;
+    } else if (board.feverGauge >= 7) {
+      statusEl.className = 'fever-status-text ready';
+      statusEl.textContent = 'FEVER READY!';
+    } else {
+      statusEl.className = 'fever-status-text';
+      statusEl.textContent = `FEVER ${board.feverGauge}/7`;
+    }
+  }
+
   // --- Main Animation & Game Loop ---
   function gameLoop(currentTime) {
     const delta = Math.min(100, currentTime - lastFrameTime);
@@ -620,6 +757,7 @@ document.addEventListener('DOMContentLoaded', () => {
       p1Board.render(p1Ctx);
       p1ScoreEl.textContent = p1Board.score.toLocaleString();
       renderGarbageTray(p1GarbageTray, p1Board.pendingGarbage);
+      updateFeverUI(p1FeverBar, p1FeverStatus, p1Board);
       renderNextPreview(p1NextCtx, p1Board);
     }
 
@@ -636,6 +774,7 @@ document.addEventListener('DOMContentLoaded', () => {
       p2Board.render(p2Ctx);
       p2ScoreEl.textContent = p2Board.score.toLocaleString();
       renderGarbageTray(p2GarbageTray, p2Board.pendingGarbage);
+      updateFeverUI(p2FeverBar, p2FeverStatus, p2Board);
       renderNextPreview(p2NextCtx, p2Board);
     }
 

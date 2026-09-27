@@ -30,6 +30,15 @@ class PuyoBoard {
     this.queuedGarbage = 0;  // Garbage sent but not yet committed
     this.allClear = false;
 
+    // Fever Mode variables
+    this.feverGauge = 0; // 0 to 7
+    this.isFeverMode = false;
+    this.feverTimeLeft = 0; // ms
+    this.savedNormalGrid = null;
+    this.savedNormalPendingGarbage = 0;
+    this.feverLevel = 4;
+    this.onFeverStateChange = options.onFeverStateChange || null;
+
     // Gravity and timing
     this.dropInterval = 750; // ms per row
     this.lastDropTime = 0;
@@ -424,6 +433,9 @@ class PuyoBoard {
 
       // Attack points to garbage puyos (70 points = 1 Ojama puyo)
       let generatedGarbage = Math.floor(stepScore / 70);
+      if (this.isFeverMode) {
+        generatedGarbage = Math.floor(generatedGarbage * 1.5); // 1.5x garbage attack in Fever!
+      }
       if (this.allClear) {
         generatedGarbage += 30; // Massive All-Clear bonus!
         this.allClear = false;
@@ -463,15 +475,32 @@ class PuyoBoard {
       }, 350);
 
     } else {
-      // Chain completed! Check for All-Clear (전체 클리어)
+      // Chain completed! Check for Fever Preset success
+      if (this.isFeverMode) {
+        if (this.currentChain >= this.feverLevel || this.isBoardEmpty()) {
+          this.feverTimeLeft += 2500;
+          window.audioManager?.playFeverSuccess();
+          this.addFloatingText('SUCCESS! +2.5s', this.cols / 2, 4, '#00e676', 26);
+          this.feverLevel = Math.min(7, this.feverLevel + 1);
+          setTimeout(() => {
+            if (this.isFeverMode) {
+              this.loadFeverPreset(this.feverLevel);
+              this.spawnPiece();
+            }
+          }, 350);
+          return;
+        }
+      }
+
+      // Check for All-Clear (전체 클리어)
       if (this.isBoardEmpty() && this.currentChain > 0) {
         this.allClear = true;
         window.audioManager?.playAllClear();
         this.addFloatingText('ALL CLEAR!', this.cols / 2, 6, '#ffd700', 36);
       }
 
-      // Check if garbage should fall
-      if (this.pendingGarbage > 0) {
+      // Check if garbage should fall (garbage cannot fall during Fever mode)
+      if (this.pendingGarbage > 0 && !this.isFeverMode) {
         this.dropGarbage();
       } else {
         // Spawn next piece
@@ -491,6 +520,15 @@ class PuyoBoard {
 
   handleGarbageOffset(incomingAttack) {
     if (incomingAttack <= 0) return;
+
+    // Build Fever Gauge (1 point per offset or substantial attack)
+    if (!this.isFeverMode) {
+      this.feverGauge = Math.min(7, this.feverGauge + 1);
+      if (this.feverGauge >= 7) {
+        this.enterFeverMode();
+        return;
+      }
+    }
 
     if (this.pendingGarbage > 0) {
       if (incomingAttack >= this.pendingGarbage) {
@@ -647,10 +685,18 @@ class PuyoBoard {
       }
     }
 
+    // Fever timer countdown
+    if (this.isFeverMode) {
+      this.feverTimeLeft -= delta;
+      if (this.feverTimeLeft <= 0) {
+        this.exitFeverMode();
+      }
+    }
+
     // Gravity ticker for active piece
     if (this.state === 'FALLING' && this.activePiece) {
       this.lastDropTime += delta;
-      const effectiveInterval = this.softDrop ? 60 : this.dropInterval;
+      const effectiveInterval = this.softDrop ? 60 : (this.isFeverMode ? 350 : this.dropInterval);
 
       if (this.lastDropTime >= effectiveInterval) {
         this.lastDropTime = 0;
@@ -664,6 +710,79 @@ class PuyoBoard {
           this.lockTimer = 0;
         }
       }
+    }
+  }
+
+  enterFeverMode() {
+    this.isFeverMode = true;
+    this.feverTimeLeft = 18000; // 18 seconds
+    this.savedNormalGrid = this.grid.map(row => [...row]);
+    this.savedNormalPendingGarbage = this.pendingGarbage;
+    this.pendingGarbage = 0;
+    this.feverLevel = 4;
+    window.audioManager?.playFeverEnter();
+    this.screenShake = 18;
+    this.addFloatingText('FEVER TIME!', this.cols / 2, 5, '#ff007f', 40);
+    this.loadFeverPreset(this.feverLevel);
+    if (this.onFeverStateChange) this.onFeverStateChange(true);
+    this.spawnPiece();
+    this.notifyState();
+  }
+
+  exitFeverMode() {
+    if (!this.isFeverMode) return;
+    this.isFeverMode = false;
+    this.feverGauge = 0;
+    this.grid = this.savedNormalGrid || this.createEmptyGrid();
+    this.pendingGarbage = this.savedNormalPendingGarbage || 0;
+    this.addFloatingText('FEVER END', this.cols / 2, 5, '#94a3b8', 30);
+    if (this.onFeverStateChange) this.onFeverStateChange(false);
+    this.startSettling();
+    this.notifyState();
+  }
+
+  loadFeverPreset(level = 4) {
+    this.grid = this.createEmptyGrid();
+    const R = PUYO_COLORS.RED;
+    const G = PUYO_COLORS.GREEN;
+    const B = PUYO_COLORS.BLUE;
+    const Y = PUYO_COLORS.YELLOW;
+    const P = PUYO_COLORS.PURPLE;
+
+    if (level === 4) {
+      // 4-Chain Staircase
+      this.grid[10][0] = R; this.grid[11][0] = R; this.grid[12][0] = R;
+      this.grid[12][1] = R; this.grid[9][1] = G; this.grid[10][1] = G; this.grid[11][1] = G;
+      this.grid[12][2] = G; this.grid[9][2] = B; this.grid[10][2] = B; this.grid[11][2] = B;
+      this.grid[12][3] = B; this.grid[9][3] = Y; this.grid[10][3] = Y; this.grid[11][3] = Y;
+      this.nextQueue[0] = { axis: R, child: R };
+    } else if (level === 5) {
+      // 5-Chain Staircase
+      this.grid[10][0] = R; this.grid[11][0] = R; this.grid[12][0] = R;
+      this.grid[12][1] = R; this.grid[9][1] = G; this.grid[10][1] = G; this.grid[11][1] = G;
+      this.grid[12][2] = G; this.grid[9][2] = B; this.grid[10][2] = B; this.grid[11][2] = B;
+      this.grid[12][3] = B; this.grid[9][3] = Y; this.grid[10][3] = Y; this.grid[11][3] = Y;
+      this.grid[12][4] = Y; this.grid[9][4] = P; this.grid[10][4] = P; this.grid[11][4] = P;
+      this.nextQueue[0] = { axis: R, child: R };
+    } else if (level === 6) {
+      // 6-Chain Staircase
+      this.grid[10][0] = R; this.grid[11][0] = R; this.grid[12][0] = R;
+      this.grid[12][1] = R; this.grid[9][1] = G; this.grid[10][1] = G; this.grid[11][1] = G;
+      this.grid[12][2] = G; this.grid[9][2] = B; this.grid[10][2] = B; this.grid[11][2] = B;
+      this.grid[12][3] = B; this.grid[9][3] = Y; this.grid[10][3] = Y; this.grid[11][3] = Y;
+      this.grid[12][4] = Y; this.grid[9][4] = P; this.grid[10][4] = P; this.grid[11][4] = P;
+      this.grid[12][5] = P; this.grid[9][5] = R; this.grid[10][5] = R; this.grid[11][5] = R;
+      this.nextQueue[0] = { axis: R, child: R };
+    } else {
+      // 7-Chain Master Staircase
+      this.grid[10][0] = R; this.grid[11][0] = R; this.grid[12][0] = R;
+      this.grid[12][1] = R; this.grid[9][1] = G; this.grid[10][1] = G; this.grid[11][1] = G;
+      this.grid[12][2] = G; this.grid[9][2] = B; this.grid[10][2] = B; this.grid[11][2] = B;
+      this.grid[12][3] = B; this.grid[9][3] = Y; this.grid[10][3] = Y; this.grid[11][3] = Y;
+      this.grid[12][4] = Y; this.grid[9][4] = P; this.grid[10][4] = P; this.grid[11][4] = P;
+      this.grid[12][5] = P; this.grid[9][5] = R; this.grid[10][5] = R; this.grid[11][5] = R;
+      this.grid[8][5] = R; this.grid[8][4] = G; this.grid[8][3] = G; this.grid[8][2] = G;
+      this.nextQueue[0] = { axis: R, child: R };
     }
   }
 
@@ -791,6 +910,23 @@ class PuyoBoard {
       ctx.restore();
     }
 
+    // 6. Draw Fever Mode Overlay
+    if (this.isFeverMode) {
+      // Rainbow pulsating border
+      const t = Date.now() * 0.005;
+      const hue = Math.floor((t * 50) % 360);
+      ctx.strokeStyle = `hsl(${hue}, 100%, 60%)`;
+      ctx.lineWidth = 4;
+      ctx.strokeRect(2, 2, this.cols * this.cellSize - 4, this.visibleRows * this.cellSize - 4);
+
+      // Fever Timer Countdown Pill
+      const secLeft = Math.max(0, (this.feverTimeLeft / 1000)).toFixed(1);
+      ctx.font = '900 13px "Outfit", sans-serif';
+      ctx.fillStyle = '#ff007f';
+      ctx.textAlign = 'right';
+      ctx.fillText(`⚡ FEVER ${secLeft}s`, this.cols * this.cellSize - 8, 18);
+    }
+
     ctx.restore();
   }
 
@@ -839,7 +975,10 @@ class PuyoBoard {
       score: this.score,
       currentChain: this.currentChain,
       pendingGarbage: this.pendingGarbage,
-      state: this.state
+      state: this.state,
+      feverGauge: this.feverGauge,
+      isFeverMode: this.isFeverMode,
+      feverTimeLeft: this.feverTimeLeft
     };
   }
 
@@ -851,6 +990,9 @@ class PuyoBoard {
     this.currentChain = state.currentChain;
     this.pendingGarbage = state.pendingGarbage;
     this.state = state.state;
+    this.feverGauge = state.feverGauge || 0;
+    this.isFeverMode = state.isFeverMode || false;
+    this.feverTimeLeft = state.feverTimeLeft || 0;
   }
 }
 

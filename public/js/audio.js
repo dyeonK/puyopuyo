@@ -11,15 +11,31 @@ class AudioManager {
     this.bgmStep = 0;
     this.hasCustomBgm = true;
 
+    this.sfxVolume = localStorage.getItem('puyo_sfx_vol') !== null ? parseFloat(localStorage.getItem('puyo_sfx_vol')) : 0.8;
+    this.bgmVolume = localStorage.getItem('puyo_bgm_vol') !== null ? parseFloat(localStorage.getItem('puyo_bgm_vol')) : 0.5;
+
     // Load custom MP3 BGM
     this.bgmAudio = new Audio('audio/bgm.mp3');
     this.bgmAudio.loop = true;
-    this.bgmAudio.volume = 0.45;
+    this.bgmAudio.volume = this.bgmVolume;
     this.bgmAudio.addEventListener('error', () => {
       this.hasCustomBgm = false;
     });
 
     this.initAudioContext();
+  }
+
+  setSfxVolume(val) {
+    this.sfxVolume = Math.max(0, Math.min(1, val));
+    localStorage.setItem('puyo_sfx_vol', this.sfxVolume);
+  }
+
+  setBgmVolume(val) {
+    this.bgmVolume = Math.max(0, Math.min(1, val));
+    localStorage.setItem('puyo_bgm_vol', this.bgmVolume);
+    if (this.bgmAudio) {
+      this.bgmAudio.volume = this.bgmVolume;
+    }
   }
 
   initAudioContext() {
@@ -49,6 +65,44 @@ class AudioManager {
       this.startBGM();
     }
     return this.muted;
+  }
+
+  playFeverEnter() {
+    if (this.muted) return;
+    this.ensureContext();
+    const notes = [440, 554.37, 659.25, 880, 1108.73, 1318.51];
+    notes.forEach((freq, idx) => {
+      const t = this.ctx.currentTime + idx * 0.06;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.25 * this.sfxVolume, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.35);
+    });
+  }
+
+  playFeverSuccess() {
+    if (this.muted) return;
+    this.ensureContext();
+    const chords = [523.25, 659.25, 783.99, 1046.50, 1567.98];
+    chords.forEach(freq => {
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.2 * this.sfxVolume, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.5);
+    });
   }
 
   // --- Sound Effects ---
