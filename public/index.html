@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>뿌요뿌요 리메이크 (Puyo Puyo Neon Pop)</title>
+  <meta name="description" content="실시간 멀티플레이 및 스마트 AI 대전 모드를 지원하는 모던 네온 젤리 팝 스타일의 뿌요뿌요 리메이크 웹게임입니다.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="bg-ambient-glow"></div>
+
+  <div id="app">
+    <!-- Header -->
+    <header>
+      <div class="logo-area" id="btnLogoHome">
+        <svg class="logo-icon" viewBox="0 0 100 100" fill="none">
+          <circle cx="50" cy="50" r="45" fill="url(#puyoGrad)"/>
+          <ellipse cx="38" cy="46" rx="8" ry="12" fill="#fff"/>
+          <ellipse cx="62" cy="46" rx="8" ry="12" fill="#fff"/>
+          <circle cx="40" cy="48" r="5" fill="#1a102f"/>
+          <circle cx="64" cy="48" r="5" fill="#1a102f"/>
+          <circle cx="42" cy="46" r="2" fill="#fff"/>
+          <circle cx="66" cy="46" r="2" fill="#fff"/>
+          <path d="M 40 68 Q 50 78 60 68" stroke="#a80b33" stroke-width="4" stroke-linecap="round"/>
+          <defs>
+            <radialGradient id="puyoGrad" cx="30%" cy="30%" r="70%">
+              <stop offset="0%" stop-color="#ff7597"/>
+              <stop offset="60%" stop-color="#ff2e63"/>
+              <stop offset="100%" stop-color="#a80b33"/>
+            </radialGradient>
+          </defs>
+        </svg>
+        <span class="logo-text">PUYO PUYO NEON</span>
+      </div>
+
+      <div class="top-controls">
+        <button id="btnSoundToggle" class="btn-icon" title="효과음 켜기/끄기">
+          <span id="soundIcon">🔊</span> 효과음
+        </button>
+        <button id="btnBgmToggle" class="btn-icon" title="배경음악 켜기/끄기">
+          <span id="bgmIcon">🎵</span> BGM
+        </button>
+        <button id="btnHowToPlay" class="btn-icon" title="게임 방법">
+          <span>❓</span> 조작법
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Screens -->
+    <main style="flex: 1; display: flex; flex-direction: column;">
+      <!-- SCREEN 1: TITLE & MODE SELECTION -->
+      <section id="screenMenu" class="screen active">
+        <div class="title-banner">
+          <h1 class="title-title">PUYO PUYO</h1>
+          <p class="title-sub">NEON JELLY POP REMAKE</p>
+        </div>
+
+        <div class="menu-cards-container">
+          <!-- Card 1: VS Computer -->
+          <div class="menu-card" id="cardVsComputer">
+            <div class="card-icon">🤖</div>
+            <h2 class="card-title">컴퓨터 대전</h2>
+            <p class="card-desc">인공지능 AI와 1:1 진검승부! 초급부터 마스터 난이도까지 도전해보세요.</p>
+          </div>
+
+          <!-- Card 2: Online Multiplayer -->
+          <div class="menu-card" id="cardVsMultiplayer">
+            <div class="card-icon">👥</div>
+            <h2 class="card-title">친구와 1:1 대전</h2>
+            <p class="card-desc">방을 만들고 초대 코드를 공유하여 친구와 실시간으로 연쇄 배틀을 즐기세요.</p>
+          </div>
+
+          <!-- Card 3: Solo Practice -->
+          <div class="menu-card" id="cardSoloPractice">
+            <div class="card-icon">🎯</div>
+            <h2 class="card-title">혼자 연습하기</h2>
+            <p class="card-desc">방해뿌요 없이 나만의 거대 연쇄(GTR, 계단 쌓기 등)를 자유롭게 연구하세요.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN 2: GAMEPLAY ARENA -->
+      <section id="screenGame" class="screen">
+        <div class="game-container">
+          <!-- Player 1 Board Pod -->
+          <div class="board-pod player-pod">
+            <!-- Next Puyo Preview -->
+            <div class="next-preview-box">
+              <span class="next-title">NEXT</span>
+              <canvas id="p1NextCanvas" class="next-canvas" width="46" height="92"></canvas>
+            </div>
+
+            <!-- Player Header -->
+            <div class="player-info-bar">
+              <div class="player-label">
+                <span id="p1Name">플레이어 1</span>
+                <span class="badge-tag" id="p1Badge">1P (YOU)</span>
+              </div>
+              <div class="score-display" id="p1Score">0</div>
+            </div>
+
+            <!-- Garbage Tray Bar -->
+            <div class="garbage-tray" id="p1GarbageTray" title="받을 방해뿌요 대기열">
+              <!-- Dynamically populated garbage icons -->
+            </div>
+
+            <!-- Game Canvas -->
+            <div class="board-arena">
+              <canvas id="p1Canvas" class="board-canvas" width="216" height="432"></canvas>
+            </div>
+          </div>
+
+          <!-- Center VS Column -->
+          <div class="vs-center-col">
+            <div class="vs-emblem">VS</div>
+            <div class="match-status-pill" id="matchStatusText">READY</div>
+            <div id="roomCodeDisplay" style="display: none; margin-top: 12px; font-size: 11px; text-align: center; color: var(--text-muted);">
+              방 코드: <b id="displayCodeText" style="color: var(--neon-cyan); letter-spacing: 2px;"></b>
+            </div>
+          </div>
+
+          <!-- Opponent Board Pod (AI or Player 2) -->
+          <div class="board-pod opponent-pod" id="opponentPod">
+            <!-- Next Puyo Preview -->
+            <div class="next-preview-box">
+              <span class="next-title">NEXT</span>
+              <canvas id="p2NextCanvas" class="next-canvas" width="46" height="92"></canvas>
+            </div>
+
+            <!-- Opponent Header -->
+            <div class="player-info-bar">
+              <div class="player-label">
+                <span id="p2Name">컴퓨터 AI</span>
+                <span class="badge-tag" id="p2Badge" style="color: #ffd700; background: rgba(255, 215, 0, 0.2);">AI</span>
+              </div>
+              <div class="score-display" id="p2Score">0</div>
+            </div>
+
+            <!-- Garbage Tray Bar -->
+            <div class="garbage-tray" id="p2GarbageTray" title="상대방 방해뿌요 대기열">
+              <!-- Dynamically populated garbage icons -->
+            </div>
+
+            <!-- Game Canvas -->
+            <div class="board-arena">
+              <canvas id="p2Canvas" class="board-canvas" width="216" height="432"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile / Touch On-Screen Controls -->
+        <div class="mobile-controls" id="mobileControls">
+          <div class="touch-cluster">
+            <button class="touch-btn" id="btnTouchLeft" style="grid-column: 1; grid-row: 2;">◀</button>
+            <button class="touch-btn" id="btnTouchDown" style="grid-column: 2; grid-row: 2;">▼</button>
+            <button class="touch-btn" id="btnTouchRight" style="grid-column: 3; grid-row: 2;">▶</button>
+            <button class="touch-btn" id="btnTouchHardDrop" style="grid-column: 2; grid-row: 1;">⚡</button>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: flex-end;">
+            <button class="touch-btn" id="btnTouchRotCCW" style="width: 64px; height: 64px;">↺</button>
+            <button class="touch-btn" id="btnTouchRotCW" style="width: 64px; height: 64px; background: rgba(255, 0, 127, 0.2); border-color: var(--neon-pink);">↻</button>
+          </div>
+        </div>
+
+        <!-- Controls Guide Footer -->
+        <div class="controls-guide-bar">
+          <div><span class="key-pill">←</span><span class="key-pill">→</span> 이동</div>
+          <div><span class="key-pill">↓</span> 소프트 드롭</div>
+          <div><span class="key-pill">Space</span> 하드 드롭</div>
+          <div><span class="key-pill">Z</span> / <span class="key-pill">X</span> 회전</div>
+          <div><span class="key-pill">Esc</span> 일시정지/메뉴</div>
+        </div>
+      </section>
+    </main>
+
+    <!-- MODAL 1: AI Difficulty Selection -->
+    <div class="modal-overlay" id="modalDifficulty">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title">AI 난이도 선택</h3>
+          <button class="btn-close" id="btnCloseDiff">✕</button>
+        </div>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">대결할 컴퓨터 AI의 실력을 선택해주세요.</p>
+        
+        <div class="difficulty-options">
+          <div class="diff-btn" data-diff="easy">
+            <div style="font-size: 28px; margin-bottom: 6px;">🟢</div>
+            <b>초급</b>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">느긋한 연습용</div>
+          </div>
+          <div class="diff-btn active" data-diff="normal">
+            <div style="font-size: 28px; margin-bottom: 6px;">🟡</div>
+            <b>중급</b>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">연쇄 및 방어 구사</div>
+          </div>
+          <div class="diff-btn" data-diff="hard">
+            <div style="font-size: 28px; margin-bottom: 6px;">🔴</div>
+            <b>상급</b>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">빠른 콤보 머신</div>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="btnStartVsAi">대결 시작!</button>
+      </div>
+    </div>
+
+    <!-- MODAL 2: Multiplayer Room Lobby -->
+    <div class="modal-overlay" id="modalMultiplayer">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title">친구와 1:1 대전</h3>
+          <button class="btn-close" id="btnCloseMulti">✕</button>
+        </div>
+
+        <!-- Initial Form (Create or Join) -->
+        <div id="multiplayerInitialForm">
+          <div class="form-group">
+            <label class="form-label">내 닉네임</label>
+            <input type="text" id="inputPlayerName" class="input-neon" value="뿌요마스터" maxlength="10">
+          </div>
+
+          <button class="btn-primary" id="btnCreateRoom">새 방 만들기 (초대 링크 생성)</button>
+          
+          <div style="display: flex; align-items: center; margin: 18px 0; color: var(--text-muted); font-size: 12px; gap: 10px;">
+            <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
+            <span>또는 방 코드로 참가</span>
+            <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
+          </div>
+
+          <div class="form-group" style="display: flex; gap: 8px;">
+            <input type="text" id="inputRoomCode" class="input-neon" placeholder="6자리 방 코드 입력" style="text-transform: uppercase; font-weight: bold; letter-spacing: 2px;">
+            <button class="btn-secondary" id="btnJoinRoom" style="width: auto; margin-top: 0; padding: 0 24px;">참가</button>
+          </div>
+        </div>
+
+        <!-- Waiting Lobby Form -->
+        <div id="multiplayerLobbyForm" style="display: none;">
+          <p style="font-size: 14px; color: var(--text-muted);">친구에게 아래 초대 코드나 링크를 전달하세요!</p>
+          
+          <div class="room-code-box">
+            <div>
+              <div style="font-size: 11px; color: var(--text-muted);">ROOM CODE</div>
+              <div class="room-code-text" id="modalRoomCodeText">------</div>
+            </div>
+            <button class="btn-icon" id="btnCopyInviteLink" style="background: rgba(0,240,255,0.2); border-color: var(--neon-cyan);">
+              📋 초대 링크 복사
+            </button>
+          </div>
+
+          <div class="room-players-list">
+            <div class="player-item" id="lobbyPlayer1">
+              <span id="lobbyP1Name">플레이어 1</span>
+              <span class="badge-ready waiting" id="lobbyP1Status">대기 중</span>
+            </div>
+            <div class="player-item" id="lobbyPlayer2">
+              <span id="lobbyP2Name" style="color: var(--text-muted);">(친구 기다리는 중...)</span>
+              <span class="badge-ready waiting" id="lobbyP2Status">-</span>
+            </div>
+          </div>
+
+          <button class="btn-primary" id="btnToggleReady">준비 완료 (READY)</button>
+          <button class="btn-secondary" id="btnLeaveRoom">방 나가기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 3: Game Over & Match Result -->
+    <div class="modal-overlay" id="modalGameOver">
+      <div class="modal-card" style="text-align: center;">
+        <h2 id="resultTitle" style="font-family: 'Outfit', sans-serif; font-size: 44px; font-weight: 900; margin-bottom: 8px;">VICTORY!</h2>
+        <p id="resultSub" style="color: var(--text-muted); font-size: 16px; margin-bottom: 24px;">상대방이 다운되었습니다.</p>
+
+        <div style="background: rgba(0,0,0,0.3); border-radius: 16px; padding: 18px; margin-bottom: 24px; display: flex; justify-content: space-around;">
+          <div>
+            <div style="font-size: 12px; color: var(--text-muted);">최종 점수</div>
+            <div id="resultScore" style="font-size: 26px; font-weight: 900; color: var(--neon-yellow); margin-top: 4px;">0</div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: var(--text-muted);">최대 연쇄</div>
+            <div id="resultMaxChain" style="font-size: 26px; font-weight: 900; color: var(--neon-cyan); margin-top: 4px;">0 Chain</div>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="btnRematch">다시 대결하기</button>
+        <button class="btn-secondary" id="btnReturnMenu">메인 메뉴로</button>
+      </div>
+    </div>
+
+    <!-- MODAL 4: How To Play / Rules -->
+    <div class="modal-overlay" id="modalHowToPlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title">게임 방법 & 룰</h3>
+          <button class="btn-close" id="btnCloseHelp">✕</button>
+        </div>
+        <div style="font-size: 14px; line-height: 1.6; color: #cbd5e1; display: flex; flex-direction: column; gap: 14px;">
+          <div>
+            <b style="color: var(--neon-pink);">1. 4개 이상 연결하여 터뜨리기</b><br>
+            같은 색상의 뿌요를 가로 또는 세로로 4개 이상 연결하면 터지며 점수를 얻습니다.
+          </div>
+          <div>
+            <b style="color: var(--neon-cyan);">2. 연쇄(Chain)로 상대 공격</b><br>
+            뿌요가 터진 후 위에 있던 뿌요들이 중력으로 떨어지며 연속으로 터지면 <b>연쇄</b>가 발생합니다! 2연쇄 이상부터 상대에게 무시무시한 <b>방해뿌요</b>를 보냅니다.
+          </div>
+          <div>
+            <b style="color: var(--neon-green);">3. 방해뿌요 상쇄 시스템</b><br>
+            상대방에게 공격을 받았을 때 바로 연쇄를 일으키면 날아오는 방해뿌요를 <b>상쇄(OFFSET)</b>시켜 막아내거나 역공할 수 있습니다!
+          </div>
+          <div>
+            <b style="color: #ff0055);">4. 패배 조건 (X 표시)</b><br>
+            왼쪽에서 3번째 열 맨 위(빨간 X 표시)까지 뿌요가 꽉 차서 숨이 막히면 게임오버됩니다.
+          </div>
+        </div>
+        <button class="btn-secondary" id="btnCloseHelpBtn" style="margin-top: 24px;">확인 완료</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/puyo.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/multiplayer.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
